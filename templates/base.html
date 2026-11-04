@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Personal Expense Tracker{% endblock %}</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="{{ url_for('static', filename='js/script.js') }}" defer></script>
+</head>
+<body>
+    <!-- Mobile Menu Button & Backdrop -->
+    <button class="mobile-menu-btn" id="menu-toggle" type="button" aria-label="Toggle navigation">
+        <svg class="icon-menu" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" x2="20" y1="12" y2="12"></line>
+            <line x1="4" x2="20" y1="6" y2="6"></line>
+            <line x1="4" x2="20" y1="18" y2="18"></line>
+        </svg>
+        <svg class="icon-close" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+    </button>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+        <a class="brand" href="{{ url_for('dashboard') }}">
+            <div class="brand-mark">
+                <span>₹</span>
+            </div>
+            <div class="brand-text">
+                <span class="brand-title">ExpenseTracker</span>
+                <span class="brand-subtitle">PERSONAL FINANCE</span>
+            </div>
+        </a>
+
+        <div class="nav-section-label">MAIN MENU</div>
+        <nav class="sidebar-nav" aria-label="Main navigation">
+            <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
+                <span class="nav-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="7" height="9" x="3" y="3" rx="1"></rect>
+                        <rect width="7" height="5" x="14" y="3" rx="1"></rect>
+                        <rect width="7" height="9" x="14" y="12" rx="1"></rect>
+                        <rect width="7" height="5" x="3" y="16" rx="1"></rect>
+                    </svg>
+                </span>
+                <span>Dashboard</span>
+            </a>
+            <a class="nav-link {% if request.endpoint == 'salary' %}active{% endif %}" href="{{ url_for('salary') }}">
+                <span class="nav-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.5-1 2-2h1V5z"></path>
+                        <path d="M2 9v1c0 1.1.9 2 2 2h1"></path>
+                        <path d="M16 11h.01"></path>
+                    </svg>
+                </span>
+                <span>Salary & Income</span>
+            </a>
+            <a class="nav-link {% if request.endpoint in ['emi', 'delete_emi', 'toggle_emi_status'] %}active{% endif %}" href="{{ url_for('emi') }}">
+                <span class="nav-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="20" height="14" x="2" y="5" rx="2"></rect>
+                        <line x1="2" x2="22" y1="10" y2="10"></line>
+                    </svg>
+                </span>
+                <span>EMI Tracker</span>
+            </a>
+            <a class="nav-link {% if request.endpoint in ['expenses', 'delete_expense'] %}active{% endif %}" href="{{ url_for('expenses') }}">
+                <span class="nav-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v1"></path>
+                        <path d="M18 8h4a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-4"></path>
+                        <circle cx="8" cy="12" r="2"></circle>
+                    </svg>
+                </span>
+                <span>Daily Expenses</span>
+            </a>
+            <a class="nav-link {% if request.endpoint in ['fuel', 'delete_fuel'] %}active{% endif %}" href="{{ url_for('fuel') }}">
+                <span class="nav-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 22h12"></path>
+                        <path d="M4 9h10"></path>
+                        <path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18"></path>
+                        <path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5"></path>
+                    </svg>
+                </span>
+                <span>Fuel Charges</span>
+            </a>
+            <a class="nav-link {% if request.endpoint in ['reports', 'export_csv'] %}active{% endif %}" href="{{ url_for('reports') }}">
+                <span class="nav-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" x2="18" y1="20" y2="10"></line>
+                        <line x1="12" x2="12" y1="20" y2="4"></line>
+                        <line x1="6" x2="6" y1="20" y2="14"></line>
+                    </svg>
+                </span>
+                <span>Monthly Reports</span>
+            </a>
+        </nav>
+
+        <!-- Workspace footer -->
+        <div class="sidebar-account">
+            <div class="account-profile">
+                <div class="account-avatar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                </div>
+                <div class="account-info">
+                    <span class="account-label">STATUS</span>
+                    <strong class="account-email">Private Workspace</strong>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Container -->
+    <main class="main-content">
+        <header class="topbar">
+            <div class="topbar-left">
+                <p class="eyebrow">PERSONAL FINANCE MANAGEMENT</p>
+                <h1 class="page-title">{% block page_heading %}Dashboard{% endblock %}</h1>
+            </div>
+            <div class="topbar-right">
+                <div class="date-badge">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect>
+                        <line x1="16" x2="16" y1="2" y2="6"></line>
+                        <line x1="8" x2="8" y1="2" y2="6"></line>
+                        <line x1="3" x2="21" y1="10" y2="10"></line>
+                    </svg>
+                    <span>{{ today_label }}</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Flash messages / Notifications -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-container" aria-live="polite">
+                    {% for category, message in messages %}
+                        <div class="flash flash-{{ category }}" role="alert">
+                            <span class="flash-icon">
+                                {% if category == 'success' %}
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                                {% elif category == 'error' %}
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                                {% else %}
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                {% endif %}
+                            </span>
+                            <div class="flash-text">{{ message }}</div>
+                            <button class="flash-close" type="button" aria-label="Dismiss">&times;</button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Page Content -->
+        <div class="page-body">
+            {% block content %}{% endblock %}
+        </div>
+
+        <!-- Global Footer -->
+        <footer class="app-footer">
+            <div class="footer-content">
+                <span>Personal Expense Tracker</span>
+                <span class="footer-dot">&middot;</span>
+                <span>Encrypted & Private to your account</span>
+                <span class="footer-dot">&middot;</span>
+                <span>{{ current_year }}</span>
+            </div>
+        </footer>
+    </main>
+</body>
+</html>

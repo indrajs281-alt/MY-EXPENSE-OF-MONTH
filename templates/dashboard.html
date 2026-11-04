@@ -1,0 +1,410 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · Personal Expense Tracker{% endblock %}
+{% block page_heading %}Financial Dashboard{% endblock %}
+
+{% block content %}
+<!-- Page Intro with Enhanced Period Picker & Quick Actions -->
+<section class="page-intro">
+    <div class="intro-heading">
+        <h2>Monthly Overview</h2>
+        <p>Real-time summary of your income, obligations, and everyday spending for <strong>{{ month_name }} {{ year }}</strong>.</p>
+    </div>
+
+    <div class="intro-controls">
+        <!-- Period Navigator -->
+        <form class="period-picker-group" method="get" id="period-form">
+            <a class="period-nav-btn" href="{{ url_for('dashboard', month=prev_month_value) }}" title="Previous Month">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </a>
+
+            <div class="period-input-wrapper">
+                <input id="month-input" type="month" name="month" value="{{ month_value }}" aria-label="Select month" onchange="this.form.submit()">
+            </div>
+
+            <a class="period-nav-btn" href="{{ url_for('dashboard', month=next_month_value) }}" title="Next Month">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+
+            {% if not is_current_month %}
+                <a class="period-today-btn" href="{{ url_for('dashboard') }}" title="Jump to current month">This Month</a>
+            {% endif %}
+        </form>
+
+        <!-- Quick Action Shortcuts -->
+        <div class="quick-actions">
+            <a class="btn btn-primary btn-sm" href="{{ url_for('expenses', month=month, year=year) }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <span>Add Expense</span>
+            </a>
+            <a class="btn btn-secondary btn-sm" href="{{ url_for('fuel', month=month, year=year) }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <span>Log Fuel</span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Financial Status Alerts -->
+{% if not totals.salary_entered %}
+    <div class="alert-banner alert-info">
+        <div class="alert-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        </div>
+        <div class="alert-content">
+            <strong>Salary not recorded for {{ month_name }} {{ year }}.</strong>
+            <span>Record your monthly salary to enable accurate savings calculation and budget insights.</span>
+        </div>
+        <a class="btn btn-sm btn-outline" href="{{ url_for('salary', month=month, year=year) }}">Add Salary</a>
+    </div>
+{% endif %}
+
+{% if totals.balance < 0 %}
+    <div class="alert-banner alert-danger">
+        <div class="alert-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        </div>
+        <div class="alert-content">
+            <strong>Budget Deficit Alert!</strong>
+            <span>Your total monthly expenses exceed your recorded income by <strong>{{ totals.balance|abs|rupees }}</strong>. Review discretionary expenses to restore balance.</span>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Budget Spending Gauge (when salary entered) -->
+{% if totals.salary > 0 %}
+    <div class="budget-gauge-card">
+        <div class="gauge-header">
+            <div class="gauge-title">
+                <span class="gauge-label">MONTHLY SPENDING HEALTH</span>
+                <h3>{{ totals.spent_percentage }}% of salary spent</h3>
+            </div>
+            <div class="gauge-numbers">
+                <span>Spent: <strong>{{ totals.total_expenses|rupees }}</strong></span>
+                <span class="gauge-separator">/</span>
+                <span>Budget: <strong>{{ totals.salary|rupees }}</strong></span>
+            </div>
+        </div>
+        <div class="gauge-track">
+            <div class="gauge-fill {% if totals.spent_percentage > 90 %}fill-danger{% elif totals.spent_percentage > 70 %}fill-warning{% else %}fill-success{% endif %}"
+                 data-width="{{ totals.spent_percentage }}%"></div>
+        </div>
+        <div class="gauge-footer">
+            <span class="gauge-subtext">
+                {% if totals.balance >= 0 %}
+                    Remaining Balance: <strong class="text-success">{{ totals.balance|rupees }}</strong>
+                {% else %}
+                    Deficit: <strong class="text-danger">{{ totals.balance|abs|rupees }}</strong>
+                {% endif %}
+            </span>
+            {% if is_current_month and totals.days_remaining > 0 %}
+                <span class="gauge-subtext">{{ totals.days_remaining }} days remaining in this month</span>
+            {% endif %}
+        </div>
+    </div>
+{% endif %}
+
+<!-- 6 Metric Summary Cards -->
+<section class="metrics-grid">
+    <!-- Card 1: Salary -->
+    <article class="metric-card card-salary">
+        <div class="card-top">
+            <span class="card-icon-wrap icon-salary">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+            </span>
+            {% if salary and salary["received"] %}
+                <span class="badge badge-success">Received</span>
+            {% elif salary %}
+                <span class="badge badge-warning">Pending</span>
+            {% else %}
+                <span class="badge badge-muted">Not entered</span>
+            {% endif %}
+        </div>
+        <span class="metric-label">Monthly Salary</span>
+        <strong class="metric-value">{{ totals.salary|rupees }}</strong>
+        <div class="card-footer-note">
+            <a href="{{ url_for('salary', month=month, year=year) }}" class="card-action-link">Manage salary &rarr;</a>
+        </div>
+    </article>
+
+    <!-- Card 2: Paid EMI -->
+    <article class="metric-card card-emi">
+        <div class="card-top">
+            <span class="card-icon-wrap icon-emi">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="20" height="14" x="2" y="5" rx="2"></rect>
+                    <line x1="2" x2="22" y1="10" y2="10"></line>
+                </svg>
+            </span>
+            {% if totals.unpaid_emi > 0 %}
+                <span class="badge badge-warning">{{ totals.unpaid_emi|rupees }} due</span>
+            {% else %}
+                <span class="badge badge-success">All paid</span>
+            {% endif %}
+        </div>
+        <span class="metric-label">Paid EMI</span>
+        <strong class="metric-value">{{ totals.emi|rupees }}</strong>
+        <div class="card-footer-note">
+            <a href="{{ url_for('emi', month=month, year=year) }}" class="card-action-link">View EMI schedule &rarr;</a>
+        </div>
+    </article>
+
+    <!-- Card 3: Daily Expenses -->
+    <article class="metric-card card-daily">
+        <div class="card-top">
+            <span class="card-icon-wrap icon-daily">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+                    <path d="M3 6h18"></path>
+                    <path d="M16 10a4 4 0 0 1-8 0"></path>
+                </svg>
+            </span>
+            <span class="badge badge-neutral">Daily spending</span>
+        </div>
+        <span class="metric-label">Daily Expenses</span>
+        <strong class="metric-value">{{ totals.daily_expenses|rupees }}</strong>
+        <div class="card-footer-note">
+            <a href="{{ url_for('expenses', month=month, year=year) }}" class="card-action-link">View {{ month_name }} expenses &rarr;</a>
+        </div>
+    </article>
+
+    <!-- Card 4: Fuel Charges -->
+    <article class="metric-card card-fuel">
+        <div class="card-top">
+            <span class="card-icon-wrap icon-fuel">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 22h12"></path>
+                    <path d="M4 9h10"></path>
+                    <path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18"></path>
+                    <path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5"></path>
+                </svg>
+            </span>
+            <span class="badge badge-cyan">Vehicle fuel</span>
+        </div>
+        <span class="metric-label">Fuel Charges</span>
+        <strong class="metric-value">{{ totals.fuel|rupees }}</strong>
+        <div class="card-footer-note">
+            <a href="{{ url_for('fuel', month=month, year=year) }}" class="card-action-link">Fuel logs &rarr;</a>
+        </div>
+    </article>
+
+    <!-- Card 5: Total Expenses -->
+    <article class="metric-card card-expenses">
+        <div class="card-top">
+            <span class="card-icon-wrap icon-expenses">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="8" x2="16" y1="12" y2="12"></line>
+                </svg>
+            </span>
+            <span class="badge badge-rose">EMI + Daily + Fuel</span>
+        </div>
+        <span class="metric-label">Total Expenses</span>
+        <strong class="metric-value">{{ totals.total_expenses|rupees }}</strong>
+        <div class="card-footer-note">
+            <span class="subtle-text">All recorded spending</span>
+        </div>
+    </article>
+
+    <!-- Card 6: Remaining Balance -->
+    <article class="metric-card {% if totals.balance < 0 %}card-balance-deficit{% else %}card-balance-surplus{% endif %}">
+        <div class="card-top">
+            <span class="card-icon-wrap {% if totals.balance < 0 %}icon-deficit{% else %}icon-surplus{% endif %}">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a8 8 0 0 1-16 0V6"></path>
+                </svg>
+            </span>
+            {% if totals.balance < 0 %}
+                <span class="badge badge-danger">Deficit</span>
+            {% else %}
+                <span class="badge badge-success">Surplus</span>
+            {% endif %}
+        </div>
+        <span class="metric-label">Remaining Balance</span>
+        <strong class="metric-value {% if totals.balance < 0 %}text-danger{% else %}text-success{% endif %}">
+            {{ totals.balance|rupees }}
+        </strong>
+        <div class="card-footer-note">
+            <span class="subtle-text">Salary minus expenses</span>
+        </div>
+    </article>
+</section>
+
+<!-- Dashboard Analytics & Activity Grid -->
+<div class="dashboard-grid">
+    <!-- Panel 1: Monthly Financial Breakdown -->
+    <section class="panel">
+        <div class="panel-header">
+            <div>
+                <h3 class="panel-title">Expense Distribution</h3>
+                <p class="panel-subtitle">Spending breakdown for {{ month_name }} {{ year }}</p>
+            </div>
+            <a class="panel-link" href="{{ url_for('reports', month=month, year=year) }}">Full Report &rarr;</a>
+        </div>
+
+        {% if totals.total_expenses > 0 %}
+            <!-- Stacked distribution bar -->
+            <div class="distribution-stacked-bar" title="EMI: {{ totals.emi|rupees }}, Daily: {{ totals.daily_expenses|rupees }}, Fuel: {{ totals.fuel|rupees }}">
+                {% if totals.emi > 0 %}
+                    <div class="dist-segment dist-emi" data-width="{{ (totals.emi * 100 / totals.total_expenses)|round(1) }}%"></div>
+                {% endif %}
+                {% if totals.daily_expenses > 0 %}
+                    <div class="dist-segment dist-daily" data-width="{{ (totals.daily_expenses * 100 / totals.total_expenses)|round(1) }}%"></div>
+                {% endif %}
+                {% if totals.fuel > 0 %}
+                    <div class="dist-segment dist-fuel" data-width="{{ (totals.fuel * 100 / totals.total_expenses)|round(1) }}%"></div>
+                {% endif %}
+            </div>
+
+            <!-- Distribution Legend -->
+            <div class="distribution-legend">
+                <div class="legend-item">
+                    <span class="legend-color dot-emi"></span>
+                    <span class="legend-name">Paid EMI</span>
+                    <span class="legend-amount">{{ totals.emi|rupees }}</span>
+                    <span class="legend-pct">({{ (totals.emi * 100 / totals.total_expenses)|round|int }}%)</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color dot-daily"></span>
+                    <span class="legend-name">Daily Expenses</span>
+                    <span class="legend-amount">{{ totals.daily_expenses|rupees }}</span>
+                    <span class="legend-pct">({{ (totals.daily_expenses * 100 / totals.total_expenses)|round|int }}%)</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color dot-fuel"></span>
+                    <span class="legend-name">Fuel Charges</span>
+                    <span class="legend-amount">{{ totals.fuel|rupees }}</span>
+                    <span class="legend-pct">({{ (totals.fuel * 100 / totals.total_expenses)|round|int }}%)</span>
+                </div>
+            </div>
+        {% else %}
+            <div class="empty-state-compact">
+                <div class="empty-icon-wrap">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                </div>
+                <p>No expenses recorded for {{ month_name }} {{ year }}.</p>
+                <a class="btn btn-sm btn-primary" href="{{ url_for('expenses', month=month, year=year) }}">Record First Expense</a>
+            </div>
+        {% endif %}
+
+        <div class="summary-list">
+            <div class="summary-row">
+                <span class="summary-label">Monthly Salary</span>
+                <strong class="summary-val">{{ totals.salary|rupees }}</strong>
+            </div>
+            <div class="summary-row">
+                <span class="summary-label">Total Outflow</span>
+                <strong class="summary-val text-danger">- {{ totals.total_expenses|rupees }}</strong>
+            </div>
+            <div class="summary-row summary-highlight">
+                <span class="summary-label">Net Remaining</span>
+                <strong class="summary-val {% if totals.balance < 0 %}text-danger{% else %}text-success{% endif %}">{{ totals.balance|rupees }}</strong>
+            </div>
+        </div>
+    </section>
+
+    <!-- Panel 2: Unpaid EMI Reminders -->
+    <section class="panel">
+        <div class="panel-header">
+            <div>
+                <h3 class="panel-title">Pending EMIs Due</h3>
+                <p class="panel-subtitle">Scheduled obligations for {{ month_name }}</p>
+            </div>
+            <a class="panel-link" href="{{ url_for('emi', month=month, year=year) }}">Manage EMIs &rarr;</a>
+        </div>
+
+        {% if upcoming %}
+            <div class="due-list">
+                {% for item in upcoming %}
+                    <div class="due-card {% if item.is_overdue %}due-overdue{% elif item.is_due_soon %}due-soon{% endif %}">
+                        <div class="due-card-left">
+                            <span class="due-calendar-badge">
+                                <span class="badge-month">{{ item["due_date"].split('-')[1] }}</span>
+                                <span class="badge-day">{{ item["due_date"].split('-')[2] }}</span>
+                            </span>
+                            <div class="due-details">
+                                <strong class="due-title">{{ item["name"] }}</strong>
+                                <span class="due-status-text">
+                                    {% if item.is_overdue %}
+                                        <span class="text-danger font-semibold">&bull; Overdue</span>
+                                    {% elif item.is_due_soon %}
+                                        <span class="text-warning font-semibold">&bull; Due in {{ item.days_left }} day(s)</span>
+                                    {% else %}
+                                        Due on {{ item["due_date"]|date_display }}
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="due-card-right">
+                            <strong class="due-amount">{{ item["amount_paise"]|rupees }}</strong>
+                            <form method="post" action="{{ url_for('toggle_emi_status', record_id=item['id']) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="month" value="{{ month }}">
+                                <input type="hidden" name="year" value="{{ year }}">
+                                <button type="submit" class="btn btn-xs btn-outline-success" title="Mark this EMI as Paid">
+                                    Mark Paid
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state-compact">
+                <div class="empty-icon-wrap text-success">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                </div>
+                <p>All EMIs for this month have been marked as Paid! No pending dues.</p>
+                <a class="btn btn-sm btn-secondary" href="{{ url_for('emi', month=month, year=year) }}">+ Add New EMI</a>
+            </div>
+        {% endif %}
+    </section>
+</div>
+
+<!-- Recent Activity Section -->
+{% if recent_activity %}
+<section class="panel section-mt">
+    <div class="panel-header">
+        <div>
+            <h3 class="panel-title">Recent Transactions</h3>
+            <p class="panel-subtitle">Latest spending activity recorded in {{ month_name }} {{ year }}</p>
+        </div>
+        <a class="panel-link" href="{{ url_for('reports', month=month, year=year) }}">View All Transactions &rarr;</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th class="text-right">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in recent_activity %}
+                <tr>
+                    <td class="cell-date">{{ item["date"]|date_display }}</td>
+                    <td>
+                        <span class="badge {% if item['kind'] == 'Fuel' %}badge-cyan{% else %}badge-neutral{% endif %}">
+                            {{ item["kind"] }}
+                        </span>
+                    </td>
+                    <td class="cell-desc"><strong>{{ item["description"] }}</strong></td>
+                    <td>
+                        <span class="category-chip category-{{ item['category']|lower }}">
+                            {{ item["category"] }}
+                        </span>
+                    </td>
+                    <td class="cell-amount text-right">{{ item["amount_paise"]|rupees }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endif %}
+{% endblock %}
