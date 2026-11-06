@@ -3,6 +3,7 @@
 import os
 import re
 import sqlite3
+import tempfile
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -24,19 +25,14 @@ from sqlalchemy.engine import URL, make_url
 
 
 BASE_DIR = Path(__file__).resolve().parent
-INSTANCE_DIR = BASE_DIR / "instance"
-DATABASE_PATH = INSTANCE_DIR / "expenses.db"
 ON_VERCEL = bool(os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV"))
+INSTANCE_DIR = Path(tempfile.gettempdir()) / "instance" if ON_VERCEL else (BASE_DIR / "instance")
+DATABASE_PATH = INSTANCE_DIR / "expenses.db"
 
 
 def _database_url():
     url = os.environ.get("DATABASE_URL", "").strip()
     if not url:
-        if ON_VERCEL:
-            raise RuntimeError(
-                "DATABASE_URL is missing. Set it to your Supabase PostgreSQL "
-                "connection string in Vercel Project Settings > Environment Variables."
-            )
         INSTANCE_DIR.mkdir(parents=True, exist_ok=True)
         return URL.create("sqlite", database=str(DATABASE_PATH))
 

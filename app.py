@@ -24,6 +24,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from database import (
     BASE_DIR,
+    IS_SQLITE,
     ON_VERCEL,
     User,
     engine,
@@ -40,14 +41,9 @@ app = Flask(
     static_folder=STATIC_DIR,
     static_url_path="/static",
 )
-secret_key = os.environ.get("SECRET_KEY")
-if ON_VERCEL and not secret_key:
-    raise RuntimeError(
-        "SECRET_KEY is missing. Set a long random secret in Vercel Project Settings "
-        "> Environment Variables."
-    )
+secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
 app.config.update(
-    SECRET_KEY=secret_key or secrets.token_hex(32),
+    SECRET_KEY=secret_key,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=ON_VERCEL,
@@ -110,6 +106,7 @@ def inject_globals():
         "today_label": date.today().strftime("%A, %d %B %Y"),
         "today_iso": date.today().isoformat(),
         "current_year": date.today().year,
+        "is_ephemeral_demo": bool(ON_VERCEL and IS_SQLITE),
     }
 
 

@@ -139,6 +139,15 @@
             </div>
         </header>
 
+        {% if is_ephemeral_demo %}
+        <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); color: #fbbf24; border-radius: 10px; padding: 12px 18px; margin-bottom: 20px; font-size: 0.875rem; display: flex; align-items: center; gap: 12px; line-height: 1.5;">
+            <span style="font-size: 1.3rem;">⚠️</span>
+            <div>
+                <strong>Running on ephemeral preview storage (Vercel):</strong> Data is stored in temporary memory. To save your expenses permanently, add <code>DATABASE_URL</code> to your <strong>Vercel Project Settings &gt; Environment Variables</strong>.
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Flash messages / Notifications -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
