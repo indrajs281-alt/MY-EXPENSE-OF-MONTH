@@ -50,29 +50,6 @@ app.config.update(
 )
 
 
-class VercelPathFixMiddleware:
-    """Ensure Vercel internal rewrites preserve the user's intended route."""
-    def __init__(self, wsgi_app):
-        self.wsgi_app = wsgi_app
-
-    def __call__(self, environ, start_response):
-        path = environ.get("PATH_INFO", "")
-        if path in ("/api/index", "/api", "/api/index.py"):
-            original = (
-                environ.get("HTTP_X_MATCHED_PATH")
-                or environ.get("HTTP_X_FORWARDED_URI")
-                or environ.get("HTTP_X_ORIGINAL_URL")
-                or "/"
-            )
-            original = original.split("?")[0]
-            if original and original not in ("/api/index", "/api", "/api/index.py"):
-                environ["PATH_INFO"] = original
-            else:
-                environ["PATH_INFO"] = "/"
-        return self.wsgi_app(environ, start_response)
-
-
-app.wsgi_app = VercelPathFixMiddleware(app.wsgi_app)
 CSRFProtect(app)
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
